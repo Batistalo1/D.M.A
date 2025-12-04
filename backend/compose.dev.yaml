@@ -1,0 +1,22 @@
+services:
+  app:
+    build:
+      target: dev
+    command: sh -c "
+        bun install &&
+        bun run drizzle:studio --host=0.0.0.0 &
+        bun run dev
+      "
+    ports:
+      - 4983:4983
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - node_modules
+  db:
+    command: "postgres -c log_statement=all"
+    ports:
+      - ${POSTGRES_PORT}:5432

@@ -1,0 +1,42 @@
+FROM oven/bun:1-alpine AS base
+
+
+FROM base AS deps
+
+WORKDIR /temp/dev
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile
+
+WORKDIR /temp/prod
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile --production
+
+
+FROM base AS dev
+
+WORKDIR /app
+COPY --from=deps /temp/dev/node_modules ./node_modules
+COPY . .
+# temp fix for: https://github.com/drizzle-team/drizzle-orm/issues/2239
+RUN apk add nodejs
+
+
+FROM base as builder
+
+WORKDIR /app
+COPY --from=deps /temp/dev/node_modules ./node_modules
+COPY . .
+
+
+FROM base as runner
+
+RUN addgroup --system --gid 1001 bun
+RUN adduser --system --uid 1001 elysia
+
+WORKDIR /app
+COPY --from=deps /temp/prod/node_modules node_modules
+COPY --from=builder /usr/src/app/index.ts .
+COPY --from=builder /usr/src/app/package.json .
+
+USER elysia
+ENTRYPOINT [ "bun", "run", "index.ts" ]

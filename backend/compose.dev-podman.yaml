@@ -1,0 +1,7 @@
+services:
+  app:
+    # we must use volumes because podman does not support the watch command yet:
+    #   - https://github.com/containers/podman-compose/issues/792
+    volumes:
+      - .:/app
+      - /app/node_modules
